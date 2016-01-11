@@ -1,17 +1,42 @@
-FROM debian:jessie
+# Was FROM debian:jessie
+# WAS forked from nginx/nginx
+# can't figure out how to get -extras which has perl-embedded
+# going back to dockerfile even though it's deprecated; at least it works
 
-MAINTAINER Dave Thomas "opensource@peoplemerge.com"
+# Pull base image.
 
-RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62 \
-	&& echo "deb http://nginx.org/packages/mainline/debian/ jessie nginx" >> /etc/apt/sources.list \
-	&& apt-get update \
-	&& apt-get install -y ca-certificates nginx-extras gettext-base \
-	&& rm -rf /var/lib/apt/lists/*
+# WAS dockerfile/ubuntu
+FROM ubuntu:14.04
 
-# forward request and error logs to docker log collector
-RUN ln -sf /dev/stdout /var/log/nginx/access.log \
-	&& ln -sf /dev/stderr /var/log/nginx/error.log
+# Install.
+RUN \
+  sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
+  apt-get update && \
+  apt-get -y upgrade && \
+  apt-get install -y build-essential && \
+  apt-get install -y software-properties-common && \
+  apt-get install -y byobu curl git htop man unzip vim wget 
 
-EXPOSE 80 443
 
-CMD ["nginx", "-g", "daemon off;"]
+# WAS From: dockerfile/nginx
+# Install Nginx.
+RUN \
+  add-apt-repository -y ppa:nginx/stable && \
+  apt-get update && \
+  apt-get install -y nginx && \
+  rm -rf /var/lib/apt/lists/* && \
+  echo "\ndaemon off;" >> /etc/nginx/nginx.conf && \
+  chown -R www-data:www-data /var/lib/nginx
+
+# Define mountable directories.
+VOLUME ["/etc/nginx/sites-enabled", "/etc/nginx/certs", "/etc/nginx/conf.d", "/var/log/nginx", "/var/www/html"]
+
+# Define working directory.
+WORKDIR /etc/nginx
+
+# Define default command.
+CMD ["nginx"]
+
+# Expose ports.
+EXPOSE 80
+EXPOSE 443
